@@ -1,8 +1,10 @@
 const express = require("express")
+const cors = require('cors');
 const { v4: uuidv4 } = require("uuid")
 
 const app = express()
 
+app.use(cors())
 app.use(express.json())
 
 const users = []
@@ -52,9 +54,8 @@ app.get("/todos", userAlreadyExists, (req, res) => {
 })
 
 app.post("/todos", userAlreadyExists, (req, res) => {
-  const { title, deadline } = req.body
-
   const { user } = req
+  const { title, deadline } = req.body
 
   const addTodos = {
     id: uuidv4(),
@@ -66,60 +67,55 @@ app.post("/todos", userAlreadyExists, (req, res) => {
 
   user.todos.push(addTodos)
 
-  return res.status(201).send()
+  return res.status(201).json(addTodos)
 })
 
 app.put("/todos/:id", userAlreadyExists, (req, res) => {
+  const { user } = req
   const { title, deadline } = req.body
   const { id } = req.params
-  const { user } = req
 
-  const todo = user.todos.filter((todo) => todo.id === id)
+  const todo = user.todos.find((todo) => todo.id === id)
 
-  if(id !== todo[0].id) {
-    return res.status(400).json({error: "Todo not found"})
+  if(!todo) {
+    return res.status(404).json({error: "Todo not found"})
   }
 
-  todo[0].title = title
-  todo[0].deadline = new Date(deadline)
+  todo.title = title
+  todo.deadline = new Date(deadline)
 
-  return res.status(201).send()
+  return res.json(todo)
 })
 
 app.post("/todos/:id/done", userAlreadyExists, (req, res) => {
   const { id } = req.params
   const { user } = req
 
-  const todo = user.todos.filter((todo) => todo.id === id)
+  const todo = user.todos.find((todo) => todo.id === id)
 
-  if(id !== todo[0].id) {
-    return res.status(400).json({error: "Todo not found"})
+  if(!todo) {
+    return res.status(404).json({error: "Todo not found"})
   }
 
-  todo[0].done = true
+  todo.done = true
 
-  return res.status(201).send()
+  return res.json(todo)
 })
 
 app.delete("/todos/:id", userAlreadyExists, (req, res) => {
   const { id } = req.params
   const { user } = req
 
-  const todo = user.todos.filter((todo) => todo.id === id)
+  const todoIndex = user.todos.findIndex((todo) => todo.id === id)
 
-  if(id !== todo[0].id) {
-    return res.status(400).json({error: "Todo not found"})
+  if(todoIndex === -1) {
+    return res.status(404).json({error: "Todo not found"})
   }
 
-  // splice
-  var index = user.todos.indexOf(todo[0]);
-  console.log(index)
+  user.todos.splice(todoIndex, 1);
+  
 
-  if (index > -1) {
-    user.todos.splice(index, 1);
-  }
-
-  return res.status(200).json(user.todos)
+  return res.status(204).json()
 })
 
-app.listen(3333)
+module.exports = app
